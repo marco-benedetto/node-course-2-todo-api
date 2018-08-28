@@ -1,0 +1,12 @@
+var mongoose = require('mongoose');
+
+var Schema = mongoose.Schema;
+var userSchema = new Schema({
+    email: {type: String, required: true, trim: true, minlength: 1}
+});
+
+var User = mongoose.model('Users', userSchema);
+
+module.exports = {
+    User
+};
