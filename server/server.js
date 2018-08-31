@@ -1,6 +1,7 @@
-var express = require('express');
-var bodyParser = require('body-parser');
-var {ObjectID} = require('mongodb');
+const express = require('express');
+const bodyParser = require('body-parser');
+const {ObjectID} = require('mongodb');
+const _ = require('lodash');
 
 var {mongoose} = require('./db/mongoose');
 var {Todo} = require('./models/todo');
@@ -76,6 +77,61 @@ app.get('/todos/:id', (req, res) => {
         }
         res.send({todo});
     }).catch((err) => res.status(400).send());
+});
+
+app.delete('/todo/:id', (req,res) => {
+    //get the id 
+    var id = req.params.id;
+    //validate the id, if not valid return a 404
+    if(!ObjectID.isValid(id)) {
+        return res.status(404).send();
+    }
+    //remove todo by id
+    Todo.findByIdAndRemove(id).then((todo) => {
+        if(!todo) {
+            return res.status(404).send();
+        }
+        res.send({todo});
+    }).catch((err) => res.status(400).send());
+        //success,
+            //no doc? send 404
+            //if yes, send doc back with 200
+        //error, returns a 400 error with empty body
+});
+
+app.patch('/todos/:id', (req,res) => {
+    var id = req.params.id;
+    var body = _.pick(req.body, ['text', 'completed']);
+
+    if(!ObjectID.isValid(id)) {
+        return res.status(404).send();
+    }
+
+    if(_.isBoolean(body.completed) && body.completed) { //if completed is boolean and it's true
+        body.completedAt = new Date().getTime(); //getTime returns a js object containing a timestamp
+    } else {
+        body.completed = false;
+        body.completedAt = null;
+    }
+
+    Todo.findByIdAndUpdate(id, {$set: body}, {new: true}).then((todo) => {
+        if(!todo) {
+            return res.status(404).send();
+        }
+
+        res.send({todo});
+    }).catch((err) => res.status(400).send());
+});
+
+app.post('/users', (req,res) => {
+    var body = _.pick(res.body, ['email', 'password']);
+    var user = new User(body);
+    user.save().then((user) => {
+        return user.generateAuthToken();
+        // res.send(user);
+    }).then((token) => {
+        res.header('x-auth', token).send(user);
+    }).catch((err) => res.status(400).send(err));
 });
 
 app.listen(3000, () => {
